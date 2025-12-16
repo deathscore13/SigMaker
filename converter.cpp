@@ -4,6 +4,18 @@
 #include "converter.h"
 #include "misc.h"
 
+static int idaapi ShowSigConverter_chgcb(int field_id, form_actions_t& fa)
+{
+    if (field_id < 0)
+        return 1;
+
+    int mask = 0;
+    fa.get_combobox_value(1, &mask);
+    fa.enable_field(3, !mask);
+
+    return 1;
+}
+
 void ShowSigConverter()
 {
     qstring sig, mask;
@@ -11,11 +23,13 @@ void ShowSigConverter()
 
     if (ask_form(
         "Converter\n"
+        "%/"
         "<Signature :q::64:>\n"
-        "<Mask      :q::64:>\n"
-        "<#Code to IDA:R>\n"
-        "<#IDA to Code:R>>\n"
-        , &sig, &mask, &action) != 1)
+        "<Mask      :q3::64:>\n"
+        "<#Code to IDA:R0>\n"
+        "<#IDA to Code:R1>>\n",
+        ShowSigConverter_chgcb,
+        &sig, &mask, &action) != 1)
         return;
 
     switch (action)
@@ -29,7 +43,8 @@ void ShowSigConverter()
         Stage(" Convert IDA to code ");
         IDAToCode(sig, sig, mask);
         msg("Signature: %s\n"
-            "Mask:      %s\n", sig.c_str(), mask.c_str());
+            "Mask:      %s\n",
+            sig.c_str(), mask.c_str());
         break;
     }
 

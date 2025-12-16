@@ -16,26 +16,6 @@ void AddWildcardsToSig(qstring& sig, uint16 size)
         sig.cat_sprnt("? ");
 }
 
-int OpcodeSize(insn_t* ins, unsigned int& outSize)
-{
-    int i = -1;
-    while (++i < UA_MAXOP)
-    {
-        if (ins->ops[i].type == o_void)
-        {
-            outSize = 0;
-            return i;
-        }
-
-        if (ins->ops[i].offb != 0)
-        {
-            outSize = ins->ops[i].offb;
-            return i;
-        }
-    }
-    return i;
-}
-
 bool isWildcard(insn_t* ins)
 {
     switch (Settings.dataType)
@@ -62,8 +42,19 @@ bool isWildcard(insn_t* ins)
 
 void AddInsToSig(insn_t *ins, qstring& sig)
 {
-    unsigned int size;
-    OpcodeSize(ins, size);
+    unsigned int size = 0;
+    int i = -1;
+    while (++i < UA_MAXOP)
+    {
+        if (ins->ops[i].type == o_void)
+            break;
+
+        if (ins->ops[i].offb != 0)
+        {
+            size = ins->ops[i].offb;
+            break;
+        }
+    }
 
     if (size == 0)
     {
