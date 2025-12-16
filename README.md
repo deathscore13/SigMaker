@@ -11,4 +11,4 @@
 ## Установка
 1. Загрузить собранную версию из **[Releases](https://github.com/deathscore13/SigMaker/releases)**;
 2. Переместить **`sigmaker.dll`** в **`корневая_папка_IDA\plugins\`**;
-3. Запустить IDA и нажать `Ctrl+Alt+S`
+3. Запустить IDA и открыть `Edit --> Plugins --> SigMaker`, либо нажать `Ctrl+Alt+S`
