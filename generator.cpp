@@ -1,6 +1,143 @@
 ﻿#include "converter.h"
 #include "generator.h"
+#include "misc.h"
 #include "search.h"
+
+// idasdk
+#include <funcs.hpp>
+
+void CreateCode(bool position)
+{
+    Stage(" Create code pattern ");
+
+    qstring sig;
+    if (Generate(get_screen_ea(), sig, position))
+    {
+        qstring mask;
+        IDAToCode(sig, sig, mask);
+        msg("Signature: %s\n"
+            "Mask:      %s\n", sig.c_str(), mask.c_str());
+    }
+    else
+    {
+        msg("Failed to automatically generate signature\n");
+    }
+
+    Stage("");
+}
+
+void CreateIDA(bool position)
+{
+    Stage(" Create IDA pattern ");
+
+    qstring sig;
+    if (Generate(get_screen_ea(), sig, position))
+        msg("Signature: %s\n", sig.c_str());
+    else
+        msg("Failed to automatically generate signature\n");
+
+    Stage("");
+}
+
+bool Generate(ea_t addr, qstring& outSig, bool position)
+{
+    if (addr == BADADDR)
+    {
+        msg("You must select an address\n");
+        return false;
+    }
+
+    if (!position)
+    {
+        func_t* func = get_func(addr);
+        if (!func)
+        {
+            msg("Function not found at address %X\n", addr);
+            return false;
+        }
+
+        qstring buffer;
+        if (get_func_name(&buffer, addr))
+            buffer += " ";
+
+        addr = func->start_ea;
+        msg("Function %saddress: %X\n", buffer.c_str(), addr);
+    }
+
+    show_wait_box("Please Wait...");
+    
+    outSig.clear();
+    UNIQUE_RESULT unique = UNIQUE_ERROR;
+    do
+    {
+        if (!AddOneInsToSig(outSig, addr))
+        {
+            msg("Dropped a signature due to decompilation failure: %02X\n", addr);
+            goto exit;
+        }
+    } while ((unique = isUnique(outSig.c_str())) == UNIQUE_FALSE);
+
+    size_t size;
+    do
+    {
+        size = outSig.size();
+        outSig.rtrim(' ');
+        outSig.rtrim('?');
+    } while (size != outSig.size());
+
+exit:
+    hide_wait_box();
+    return (unique == UNIQUE_TRUE);
+}
+
+bool AddOneInsToSig(qstring& sig, ea_t& addr)
+{
+    insn_t ins;
+
+    if (decode_insn(&ins, addr) == 0)
+        return false;
+
+    if (ins.size == 0)
+        return false;
+
+    if (ins.size < 5)
+        AddBytesToSig(sig, addr, ins.size);
+    else
+        AddInsToSig(&ins, sig);
+
+    addr += ins.size;
+    return true;
+}
+
+void AddInsToSig(insn_t* ins, qstring& sig)
+{
+    unsigned int size = 0;
+    int i = -1;
+    while (++i < UA_MAXOP)
+    {
+        if (ins->ops[i].type == o_void)
+            break;
+
+        if (ins->ops[i].offb != 0)
+        {
+            size = ins->ops[i].offb;
+            break;
+        }
+    }
+
+    if (size == 0)
+    {
+        AddBytesToSig(sig, ins->ea, ins->size);
+        return;
+    }
+
+    AddBytesToSig(sig, ins->ea, size);
+
+    if (isWildcard(ins))
+        AddBytesToSig(sig, ins->ea + size, ins->size - size);
+    else
+        AddWildcardsToSig(sig, ins->size - size);
+}
 
 void AddBytesToSig(qstring& sig, ea_t addr, uint16 size)
 {
@@ -38,161 +175,4 @@ bool isWildcard(insn_t* ins)
     }
 
     return true;
-}
-
-void AddInsToSig(insn_t *ins, qstring& sig)
-{
-    unsigned int size = 0;
-    int i = -1;
-    while (++i < UA_MAXOP)
-    {
-        if (ins->ops[i].type == o_void)
-            break;
-
-        if (ins->ops[i].offb != 0)
-        {
-            size = ins->ops[i].offb;
-            break;
-        }
-    }
-
-    if (size == 0)
-    {
-        AddBytesToSig(sig, ins->ea, ins->size);
-        return;
-    }
-
-    AddBytesToSig(sig, ins->ea, size);
-
-    if (isWildcard(ins))
-        AddBytesToSig(sig, ins->ea + size, ins->size - size);
-    else
-        AddWildcardsToSig(sig, ins->size - size);
-}
-
-bool AddOneInsToSig(qstring& sig, ea_t& addr)
-{
-    insn_t ins;
-
-    if (decode_insn(&ins, addr) == 0)
-        return false;
-
-    if (ins.size == 0)
-        return false;
-
-    if (ins.size < 5)
-        AddBytesToSig(sig, addr, ins.size);
-    else
-        AddInsToSig(&ins, sig);
-
-    addr += ins.size;
-    return true;
-}
-
-bool AutoGenerate(ea_t addr, qstring& outSig, bool showError)
-{
-    if (addr == BADADDR)
-    {
-        if (showError)
-            msg("You must select an address\n");
-
-        return false;
-    }
-
-    func_t* func = get_func(addr);
-    if (!func)
-    {
-        if (showError)
-            msg("Function not found at address %X\n", addr);
-
-        return false;
-    }
-
-    qstring buffer;
-    if (get_func_name(&buffer, addr))
-        buffer += " ";
-
-    addr = func->start_ea;
-    msg("Function %saddress: %X\n", buffer.c_str(), addr);
-
-    show_wait_box("Please Wait...");
-
-    outSig.clear();
-    ea_t current = addr;
-    do
-    {
-        if (!AddOneInsToSig(outSig, current))
-        {
-            if (showError)
-                msg("Dropped a signature due to decompilation failure: %02X\n", current);
-
-            hide_wait_box();
-            return false;
-        }
-    } while (!isUnique(outSig));
-
-    hide_wait_box();
-    return true;
-}
-
-
-void CreateIDA()
-{
-    Stage(" Create IDA pattern ");
-
-    qstring sig;
-    if (!SigRange(sig, true))
-        return;
-
-    msg("Signature: %s\n", sig.c_str());
-    Stage("");
-}
-
-void CreateCode()
-{
-    Stage(" Create code pattern ");
-
-    qstring sig;
-    if (!SigRange(sig, true))
-        return;
-
-    qstring buffer;
-    IDAToCode(sig, sig, buffer);
-
-    msg("Signature: %s\n"
-        "Mask:      %s\n", sig.c_str(), buffer.c_str());
-    Stage("");
-}
-
-void GenerateIDA()
-{
-    Stage(" Auto create IDA pattern ");
-
-    qstring sig;
-    if (AutoGenerate(get_screen_ea(), sig, true))
-        msg("Signature: %s\n", sig.c_str());
-    else
-        msg("Failed to automatically generate signature\n");
-
-    Stage("");
-}
-
-void GenerateCode()
-{
-    Stage(" Auto create code pattern ");
-
-    qstring sig;
-    if (AutoGenerate(get_screen_ea(), sig, true))
-    {
-        qstring mask;
-        IDAToCode(sig, sig, mask);
-        msg("Signature: %s\n"
-            "Mask:      %s\n", sig.c_str(), mask.c_str());
-    }
-    else
-    {
-        msg("Failed to automatically generate signature\n");
-    }
-
-    Stage("");
 }

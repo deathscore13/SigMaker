@@ -1,14 +1,5 @@
 ﻿#pragma once
 
-// idasdk
-#include <loader.hpp>
-
-enum SigType
-{
-    SIG_IDA,
-    SIG_CODE,
-};
-
 struct Settings_t
 {
     ushort dataType = 0;
@@ -23,5 +14,8 @@ struct Settings_t
 
 extern Settings_t Settings;
 
+// idasdk
+#include <pro.h>
+
 void Stage(const char* text);
-bool SigRange(qstring& outSig, bool showError = false);
+bool SigRange(qstring& outSig);

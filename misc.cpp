@@ -1,10 +1,11 @@
+﻿#include "generator.h"
 #include "misc.h"
 #include "sigmaker.h"
-#include "generator.h"
 
 // idasdk
 #include <diskio.hpp>
-
+#include <fpro.h>
+#include <funcs.hpp>
 
 Settings_t Settings;
 
@@ -57,25 +58,18 @@ void Stage(const char* text)
     msg("%s%s%s\n", qstring(left, CHAR).c_str(), text, qstring(right, CHAR).c_str());
 }
 
-bool SigRange(qstring& outSig, bool showError)
+bool SigRange(qstring& outSig)
 {
     twinpos_t pos1, pos2;
     if (!read_selection(get_current_viewer(), &pos1, &pos2))
-    {
-        if (showError)
-            msg("You must select a address\n");
-
         return false;
-    }
 
     ea_t start = pos1.at->toea(),
         end = pos2.at->toea() + 1;
 
     if (end - start < SIG_MIN_LEN)
     {
-        if (showError)
-            msg("Your selection is too short\n");
-
+        msg("Your selection is too short\n");
         return false;
     }
 

@@ -53,6 +53,8 @@
     <ExcludePath>$(CommonExcludePath);$(VC_ExecutablePath_x64);$(VC_LibraryPath_x64)</ExcludePath>
     <OutDir>$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>
+    </LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -112,7 +114,8 @@
       <EntryPointSymbol>
       </EntryPointSymbol>
       <NoEntryPoint>false</NoEntryPoint>
-      <AdditionalOptions>/EXPORT:PLUGIN %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>
+      </AdditionalOptions>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>$(IDADIR)\idasdk\lib\x64_win_vc_32;$(IDADIR)\idasdk\lib\x64_win_vc_64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -122,6 +125,8 @@
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <TreatLinkerWarningAsErrors>
+      </TreatLinkerWarningAsErrors>
     </Link>
     <ProjectReference />
     <ProjectReference>
@@ -138,6 +143,7 @@
   <ItemGroup>
     <ClInclude Include="converter.h" />
     <ClInclude Include="generator.h" />
+    <ClInclude Include="idaEx.h" />
     <ClInclude Include="misc.h" />
     <ClInclude Include="search.h" />
     <ClInclude Include="sigmaker.h" />
@@ -151,6 +157,7 @@
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MultiThreadedDebug</RuntimeLibrary>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
+    <ClCompile Include="idaEx.cpp" />
     <ClCompile Include="misc.cpp">
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MultiThreadedDebug</RuntimeLibrary>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>

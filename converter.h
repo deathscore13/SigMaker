@@ -1,9 +1,8 @@
 ﻿#pragma once
 
 // idasdk
-#include <loader.hpp>
+#include <pro.h>
 
-void IDAToCode(const qstring& sig, qstring& outSig, qstring& outMask);
-void CodeToIDA(const char* code, const qstring& mask, qstring& outSig);
-void CodeToIDAC(const char* code, const qstring& mask, qstring& outSig);
-void ShowSigConverter();
+void WindowConverter();
+bool CodeToIDA(qstring code, const qstring& mask, qstring& outSig);
+bool IDAToCode(qstring sig, qstring& outSig, qstring& outMask);

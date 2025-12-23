@@ -1,8 +1,15 @@
 ﻿#pragma once
 
-#include <loader.hpp>
+// idasdk
+#include <pro.h>
 
-void ShowCodeWindow(const qstring* sigIDA = nullptr);
-void ShowIDAWindow(const qstring* sigIDA = nullptr);
-bool isUnique(const qstring& sig);
+enum UNIQUE_RESULT
+{
+    UNIQUE_ERROR = -1,
+    UNIQUE_FALSE = 0,
+    UNIQUE_TRUE
+};
+
+void WindowTest();
 void SearchForSigs(const qstring& sig);
+UNIQUE_RESULT isUnique(const char* sig);

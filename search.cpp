@@ -1,21 +1,73 @@
 ﻿#include "converter.h"
+#include "idaEx.h"
 #include "misc.h"
 #include "search.h"
 
 // idasdk
-#include <expr.hpp>
+#include <funcs.hpp>
+#include <kernwin.hpp>
 #include <search.hpp>
 
-bool isUnique(const qstring& sig)
+static int idaapi WindowTestChangeCB(int field_id, form_actions_t& fa)
 {
-    ea_t addr = find_binary(inf_get_min_ea(), inf_get_max_ea(), sig.c_str(), 16, SEARCH_DOWN);
-    if (addr == BADADDR)
-        return true;
+    if (field_id < 0)
+        return 1;
 
-    if (find_binary(addr + 1, inf_get_max_ea(), sig.c_str(), 16, SEARCH_DOWN) != BADADDR)
-		return false;
+    int mask = 0;
+    fa.get_combobox_value(1, &mask);
+    fa.enable_field(3, !mask);
 
-    return true;
+    return 1;
+}
+
+void WindowTest()
+{
+    qstring sig, mask;
+    if (SigRange(sig))
+        IDAToCode(sig, sig, mask);
+
+    int action = 0;
+    if (ask_form(
+        "Test pattern\n"
+        "%/"
+        "Enter or select a range\n"
+        "<Signature :q::64:>\n"
+        "<Mask      :q3::64:>\n"
+        "<#Code:R0>\n"
+        "<#IDA:R1>>\n",
+        WindowTestChangeCB,
+        &sig, &mask, &action) != 1)
+        return;
+
+    switch (action)
+    {
+    case 0:
+        if (CodeToIDA(sig, mask, sig))
+        {
+            Stage(" Test code pattern ");
+            SearchForSigs(sig);
+            Stage("");
+        }
+        else
+        {
+            msg("Empty signature or mask\n");
+        }
+        break;
+    case 1:
+        idaEx::ltrim(sig);
+        sig.rtrim();
+
+        if (sig.empty())
+        {
+            msg("Empty signature\n");
+            break;
+        }
+
+        Stage(" Test IDA pattern ");
+        SearchForSigs(sig);
+        Stage("");
+        break;
+    }
 }
 
 void SearchForSigs(const qstring& sig)
@@ -41,58 +93,14 @@ void SearchForSigs(const qstring& sig)
     hide_wait_box();
 }
 
-void ShowIDAWindow(const qstring* sigIDA)
+UNIQUE_RESULT isUnique(const char* sig)
 {
-    qstring sig;
-    if (sigIDA)
-        sig = *sigIDA;
+    ea_t addr = find_binary(inf_get_min_ea(), inf_get_max_ea(), sig, 16, SEARCH_DOWN);
+    if (addr == BADADDR)
+        return UNIQUE_ERROR;
 
-    if (sig.empty())
-        SigRange(sig);
+    if (find_binary(addr + 1, inf_get_max_ea(), sig, 16, SEARCH_DOWN) != BADADDR)
+        return UNIQUE_FALSE;
 
-    if (ask_form(
-        "Test IDA pattern\n"
-        "<Signature :q::64:>\n"
-        , &sig) != 1)
-        return;
-
-    Stage(" Test IDA pattern ");
-
-    if (sig.empty())
-        msg("Empty field\n");
-    else
-        SearchForSigs(sig);
-    
-    Stage("");
-}
-
-void ShowCodeWindow(const qstring* sigIDA)
-{
-    qstring sig, mask;
-    if (sigIDA)
-        sig = *sigIDA;
-
-    if (sig.empty() && SigRange(sig))
-        IDAToCode(sig, sig, mask);;
-
-    if (ask_form(
-        "Test code pattern\n"
-        "<Signature :q::64:>\n"
-        "<Mask      :q::64:>\n"
-        , &sig, &mask) != 1)
-        return;
-
-    Stage(" Test code pattern ");
-
-    if (sig.empty())
-    {
-        msg("Empty field\n");
-    }
-    else
-    {
-        CodeToIDAC(sig.c_str(), mask, sig);
-        SearchForSigs(sig);
-    }
-
-    Stage("");
+    return UNIQUE_TRUE;
 }
